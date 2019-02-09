@@ -17,21 +17,20 @@ script:
   - echo $PYVER
   - tox -e py$PYVER
 
-
-deploy:
-  provider: pypi
-  skip_cleanup: true
-  user: $DEPLOY_USER
-  pass: $DEPLOY_PASS
-  on:
-    condition: $TRAVIS_BRANCH == "master" || -n $TRAVIS_TAG
-#jobs:
-#  include:
-#    - stage: package
-#      python: 3.6
-#      script:
-#      - python setup.py bdist_wheel
-#      - twine upload dist/*.whl -u $DEPLOY_USER -p $DEPLOY_PASS
+jobs:
+  include:
+    - stage: deploy-release
+      python: 3.6
+      script:
+        - python setup.py bdist_wheel
+        - twine upload dist/*.whl -u $DEPLOY_USER -p $DEPLOY_PASS
+      if: tag IS true
+    - stage: deploy-snapshot
+      python: 3.6
+      script:
+        - python setup.py bdist_wheel
+        - twine upload --repository-url https://test.pypi.org dist/*.whl -u $DEPLOY_USER -p $DEPLOY_PASS
+      if: tag IS NOT true
 
 after_success:
   - coveralls
