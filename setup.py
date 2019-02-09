@@ -191,7 +191,8 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
-        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+        "License :: OSI Approved :: "
+            "GNU General Public License v3 or later (GPLv3+)",
         "Topic :: Software Development :: Libraries",
         "Natural Language :: English",
         "Operating System :: OS Independent",
