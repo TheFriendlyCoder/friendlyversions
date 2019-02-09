@@ -19,12 +19,10 @@ script:
 
 
 deploy:
-  provider: script
-  script:
-    - ls -alh
-    - python --version
-    - python setup.py bdist_wheel
+  provider: pypi
   skip_cleanup: true
+  user: $DEPLOY_USER
+  pass: $DEPLOY_PASS
   on:
     condition: $TRAVIS_BRANCH == "master" || -n $TRAVIS_TAG
 #jobs:
