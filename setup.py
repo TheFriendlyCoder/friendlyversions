@@ -192,6 +192,7 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Natural Language :: English",
         "Operating System :: OS Independent",
-        "Programming Language :: Python"
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
     ]
 )
