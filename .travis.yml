@@ -17,13 +17,23 @@ script:
   - echo $PYVER
   - tox -e py$PYVER
 
-jobs:
-  include:
-    - stage: package
-      python: 3.6
-      script:
-      - python setup.py bdist_wheel
-      - twine upload dist/*.whl -u $DEPLOY_USER -p $DEPLOY_PASS
+
+deploy:
+  provider: script
+  script:
+    - ls -alh
+    - python --version
+    - python setup.py bdist_wheel
+  skip_cleanup: true
+  on:
+    condition: $TRAVIS_BRANCH == "master" || -n $TRAVIS_TAG
+#jobs:
+#  include:
+#    - stage: package
+#      python: 3.6
+#      script:
+#      - python setup.py bdist_wheel
+#      - twine upload dist/*.whl -u $DEPLOY_USER -p $DEPLOY_PASS
 
 after_success:
   - coveralls
