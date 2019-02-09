@@ -1,19 +1,28 @@
 language: python
-sudo: false  # enable container-based build
 python:
   - 2.7
   - 3.4
   - 3.5
   - 3.6
-  - pypy3.5
   - pypy
+  - pypy3.5
 
 install:
-  - pip install tox
-  - pip install python-coveralls
+  - pip install tox twine wheel python-coveralls
 
 script:
-  - tox
+  - export PYVER=`echo $TRAVIS_PYTHON_VERSION | tr "." "\n" | head -n 1`
+  - echo $PYVER
+  - tox -e py$PYVER
+
+jobs:
+  include:
+    - stage: package
+      python: 3.6
+      script:
+      - python setup.py bdist_wheel
+      # - twine upload dist/*.whl -u $DEPLOY_USER -p $DEPLOY_PASS
 
 after_success:
   - coveralls
+
