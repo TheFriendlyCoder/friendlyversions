@@ -18,8 +18,8 @@ PROJECT_DEV_DEPENDENCIES = [
     'pylint',
     'sphinx',
     'tox']
-PROJECT_DESCRIPTION = 'Helper library for interacting with version numbers'
-PROJECT_KEYWORDS = 'semver sematic versioning version parsing'
+PROJECT_DESCRIPTION = 'Helper library for mainpulating with version numbers'
+PROJECT_KEYWORDS = 'semver semantic versioning version parsing generating'
 PROJECT_SUPPORTED_PYTHON_VERSION = \
     ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4"
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
