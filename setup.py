@@ -186,10 +186,12 @@ setup(
     extras_require={
         'dev': PROJECT_DEV_DEPENDENCIES
     },
+    license="GPL",
     # https://pypi.org/classifiers/
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Topic :: Software Development :: Libraries",
         "Natural Language :: English",
         "Operating System :: OS Independent",
