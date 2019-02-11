@@ -4,26 +4,6 @@ import os
 import ast
 from setuptools import setup, find_packages
 
-# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-# project specific parameters
-PROJECT_NAME = 'friendlyversions'
-PROJECT_DEPENDENCIES = [
-    'six'
-]
-PROJECT_DEV_DEPENDENCIES = [
-    'twine',
-    'pytest',
-    'pytest-cov',
-    'mock',
-    'pylint',
-    'sphinx',
-    'tox']
-PROJECT_DESCRIPTION = 'Helper library for mainpulating with version numbers'
-PROJECT_KEYWORDS = 'semver semantic versioning version parsing generating'
-PROJECT_SUPPORTED_PYTHON_VERSION = \
-    ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4"
-# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
 
 def load_console_scripts(project):
     """Generates list of 'entry point' functions for use by Python setup tools
@@ -103,38 +83,11 @@ def _src_version(project):
     :returns: the version for the specified project
     :rtype: :class:`str`
     """
-    # To prevent circular dependencies between the setup script and the
-    # project code, we need to parse the version.py file independently
-    # without importing anything from the project itself
-    retval = None
-
-    ver_path = os.path.join(os.getcwd(), 'src', project, 'version.py')
+    ver_path = os.path.join(os.getcwd(), 'src', project, 'version.prop')
     assert os.path.exists(ver_path)
 
-    with open(ver_path) as ver_file:
-        data = ver_file.read()
-
-    for cur_node in ast.parse(data).body:
-        # We only care about assignment statements, as we look for a line
-        # that resembles `__version__ = "1.2.3"`
-        if not isinstance(cur_node, ast.Assign):
-            continue
-
-        # In the off chance that there are multiple assignment statements
-        # in our version file, lets search for one that involves a variable
-        # named "__version__"
-        found_version = False
-        for cur_target in cur_node.targets:
-            if cur_target.id == "__version__":
-                found_version = True
-                break
-        if not found_version:
-            continue
-
-        assert isinstance(cur_node.value, ast.Str)
-
-        retval = cur_node.value.s
-        break
+    data = open(ver_path).read()
+    retval = ast.literal_eval(data)
 
     assert retval is not None
     assert _verify_src_version(retval)
@@ -147,6 +100,12 @@ def get_version_number(project):
     retval = _src_version(project)
 
     if 'TRAVIS_TAG' in os.environ and not os.environ['TRAVIS_TAG'] == '':
+        # HACK: Let us assume we're going to use the tag name
+        #       when building the template project. Makes it
+        #       easier to test release builds
+        if project == "ksp_sample":
+            return os.environ['TRAVIS_TAG']
+
         # make sure the tag name matches our version number
         if not os.environ['TRAVIS_TAG'] == retval:
             raise Exception("Tag {0} is expected to be {1}".format(
@@ -166,25 +125,141 @@ def get_version_number(project):
     return retval
 
 
+def generate_readme(project, repo=None, version=None):
+    """Generates a readme for the Python package, based on the readme file
+
+    :param str project: name of the project to generate the readme for
+    :param str repo:
+        optional name of the git repo for the project
+        if not provided, it is assumed the repo name matches the project name
+    :param str version:
+        optional version of the package being generated
+        when not provided, the "
+    :returns: readme text for the package
+    :rtype: :class:`str`
+    """
+    if repo is None:
+        repo = project
+
+    if not version or "dev" in version:
+        branch = "branch=master"
+        version = "latest"
+
+    else:
+        branch = "tag=" + version
+
+    headers = list()
+    headers.append({
+        "image":
+            "https://travis-ci.org/TheFriendlyCoder/{0}.svg?{1}".
+            format(repo, branch),
+        "target":
+            "https://travis-ci.org/TheFriendlyCoder/{0}".
+            format(repo),
+        "text": "Build Automation"
+    })
+    headers.append({
+        "image": "https://coveralls.io/repos/github/TheFriendlyCoder/{0}/"
+                 "badge.svg?{1}".format(repo, branch),
+        "target":
+            "https://coveralls.io/github/TheFriendlyCoder/{0}?{1}".
+            format(repo, branch),
+        "text": "Test Coverage"
+    })
+    headers.append({
+        "image":
+            "https://img.shields.io/pypi/pyversions/{0}.svg".
+            format(project),
+        "target": "https://pypi.python.org/pypi/{0}".format(project),
+        "text": "Python Versions"
+    })
+    headers.append({
+        "image":
+            "https://readthedocs.org/projects/{0}/badge/?version={1}".
+            format(project, version),
+        "target": "http://{0}.readthedocs.io/en/{1}".format(project, version),
+        "text": "Documentation Status"
+    })
+    headers.append({
+        "image":
+            "https://requires.io/github/TheFriendlyCoder/{0}/"
+            "requirements.svg?{1}".format(repo, branch),
+        "target":
+            "https://requires.io/github/TheFriendlyCoder/{0}/"
+            "requirements/?{1}".format(repo, branch),
+        "text": "Requirements Status"
+    })
+    headers.append({
+        "image": "https://img.shields.io/pypi/format/{0}.svg".format(project),
+        "target": "https://pypi.python.org/pypi/{0}/".format(project),
+        "text": "Package Format"
+    })
+    headers.append({
+        "image": "https://img.shields.io/pypi/dm/{0}.svg".format(project),
+        "target": "https://pypi.python.org/pypi/{0}/".format(project),
+        "text": "Download Count"
+    })
+    headers.append({
+        "image": "https://img.shields.io/pypi/l/{0}.svg".format(project),
+        "target": "https://www.gnu.org/licenses/gpl-3.0-standalone.html",
+        "text": "GPL License"
+    })
+
+    header_template = """.. image:: {0}
+    :target: {1}
+    :alt: {2}
+
+    """
+
+    retval = ""
+    for cur_header in headers:
+        retval += header_template.format(
+            cur_header["image"], cur_header["target"], cur_header["text"])
+        retval += "\n"
+
+    retval += open('README.rst').read()
+
+    return retval
+
+
+def load_project_properties():
+    """Loads project specific properties from the project.prop file
+
+    :returns: project properties
+    :rtype: :class:`dict`
+    """
+    cur_file = os.path.realpath(__file__)
+    cur_path = os.path.split(cur_file)[0]
+    props = open(os.path.join(cur_path, 'project.prop')).read()
+    return ast.literal_eval(props)
+
+
+PROJECT = load_project_properties()
+PROJECT["VERSION"] = get_version_number(PROJECT["NAME"])
+
 # Execute packaging logic
 setup(
-    name=PROJECT_NAME,
-    version=get_version_number(PROJECT_NAME),
+    name=PROJECT["NAME"],
+    version=PROJECT["VERSION"],
     author='Kevin S. Phillips',
     author_email='thefriendlycoder@gmail.com',
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    description=PROJECT_DESCRIPTION,
-    long_description=open('README.rst').read(),
-    url='https://github.com/TheFriendlyCoder/' + PROJECT_NAME,
-    keywords=PROJECT_KEYWORDS,
+    description=PROJECT["DESCRIPTION"],
+    long_description=
+    generate_readme(PROJECT["NAME"], PROJECT["REPO"], PROJECT["VERSION"]),
+    url='https://github.com/TheFriendlyCoder/' + PROJECT["NAME"],
+    keywords=PROJECT["KEYWORDS"],
     entry_points={
-        'console_scripts': load_console_scripts(PROJECT_NAME)
+        'console_scripts': load_console_scripts(PROJECT["NAME"])
     },
-    install_requires=PROJECT_DEPENDENCIES,
-    python_requires=PROJECT_SUPPORTED_PYTHON_VERSION,
+    install_requires=PROJECT["DEPENDENCIES"],
+    python_requires=PROJECT["SUPPORTED_PYTHON_VERSION"],
     extras_require={
-        'dev': PROJECT_DEV_DEPENDENCIES
+        'dev': PROJECT["DEV_DEPENDENCIES"]
+    },
+    package_data={
+        PROJECT["NAME"]: ["version.prop"]
     },
     license="GPL",
     # https://pypi.org/classifiers/
