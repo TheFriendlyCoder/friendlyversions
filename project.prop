@@ -4,6 +4,7 @@
 {
     "NAME" : "friendlyversions",
     "REPO" : "friendlyversions",
+    "PLUGIN_VER": "1.0",
     "DEPENDENCIES" : [
         "six"
     ],

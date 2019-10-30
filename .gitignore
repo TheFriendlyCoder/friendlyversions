@@ -98,3 +98,5 @@ ENV/
 
 # vscode config files
 /.vscode
+
+htmldocs

@@ -55,8 +55,22 @@ master_doc = 'index'
 copyright = '2019, Kevin S. Phillips'
 author = 'Kevin S. Phillips'
 _proj_props = ast.literal_eval(open('../project.prop').read())
-with open("../src/" + _proj_props["NAME"] + "/version.prop") as prop_file:
-    _proj_props["VERSION"] = ast.literal_eval(prop_file.read())
+with open("../src/" + _proj_props["NAME"] + "/version.py") as prop_file:
+    temp_data = ast.parse(prop_file.read())    
+for statement in temp_data.body:
+    if not isinstance(statement, ast.Assign):
+        continue
+
+    assert len(statement.targets) == 1
+    if statement.targets[0].id != "__version__":
+        continue
+
+    if not isinstance(statement.value, ast.Str):
+        continue
+    _proj_props["VERSION"] = statement.value.s
+    break
+assert "VERSION" in _proj_props
+
 project = _proj_props["NAME"]
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -160,7 +174,7 @@ html_theme = 'default'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

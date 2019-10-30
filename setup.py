@@ -33,7 +33,7 @@ def load_console_scripts(project):
         list of shell scripts exposed by this project. Produces an empty
         list if there are no shell scripts supported by the project.
     """
-    scripts_path = os.path.join(project, 'scripts')
+    scripts_path = os.path.join('src', project, 'scripts')
     if not os.path.exists(scripts_path):
         return []
 
@@ -47,6 +47,50 @@ def load_console_scripts(project):
             script_config = "{0}={1}.{0}:main".format(
                 file_parts[0],
                 scripts_namespace
+            )
+            retval.append(script_config)
+
+    return retval
+
+
+def load_plugins(project):
+    """Generates list of plugins for use by Python setup tools
+
+    Each element in this list defines the name and entry point function for each
+    plugin included with the current project.
+
+    This script assumes that any python script found in a folder named 'plugins'
+    under the project folder is to be registered as an extension point for
+    the library.
+
+    The output from this function can be provided to the setuptools.setup()
+    function, something like this:
+
+    entry_points={
+        PROJECT["NAME"] + ".plugins" : load_plugins(project_name)
+    }
+
+    :param str project:
+        the name of the current project. It is also assumed that the project
+        sources will be located under a sub-folder of the same name.
+    :return:
+        list of plugins exposed by this project. Produces an empty
+        list if there are no plugins supported by the project.
+    """
+    plugins_path = os.path.join('src', project, 'plugins')
+    if not os.path.exists(plugins_path):
+        return []
+
+    plugins_namespace = "{0}.plugins".format(project)
+    retval = []
+
+    py_scripts = os.listdir(plugins_path)
+    for py_file in py_scripts:
+        file_parts = os.path.splitext(py_file)
+        if file_parts[1] == ".py" and file_parts[0] != '__init__':
+            script_config = "{0}={1}.{0}:PluginClass".format(
+                file_parts[0],
+                plugins_namespace
             )
             retval.append(script_config)
 
@@ -83,16 +127,28 @@ def _src_version(project):
     :returns: the version for the specified project
     :rtype: :class:`str`
     """
-    ver_path = os.path.join(os.getcwd(), 'src', project, 'version.prop')
+    root_dir = os.path.dirname(__file__)
+    ver_path = os.path.join(root_dir, 'src', project, 'version.py')
     assert os.path.exists(ver_path)
 
     with open(ver_path) as prop_file:
-        data = prop_file.read()
-    retval = ast.literal_eval(data)
+        data = ast.parse(prop_file.read())
 
-    assert retval is not None
-    assert _verify_src_version(retval)
-    return retval
+    # The version.py file is expected to contain only a single statement
+    # of the form:
+    #       __version__ = "1.2.3"
+    for statement in data.body:
+        if not isinstance(statement, ast.Assign):
+            continue
+
+        assert len(statement.targets) == 1
+        if statement.targets[0].id != "__version__":
+            continue
+
+        if not isinstance(statement.value, ast.Str):
+            continue
+        return statement.value.s
+    raise Exception("Version number undefined")
 
 
 def get_version_number(project):
@@ -202,8 +258,8 @@ def generate_readme(project, repo=None, version=None):
     })
     headers.append({
         "image": "https://img.shields.io/pypi/l/{0}.svg".format(project),
-        "target": "https://www.gnu.org/licenses/gpl-3.0-standalone.html",
-        "text": "GPL License"
+        "target": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+        "text": "Apache License 2.0"
     })
 
     header_template = """.. image:: {0}
@@ -230,51 +286,56 @@ def load_project_properties():
     :returns: project properties
     :rtype: :class:`dict`
     """
-    cur_file = os.path.realpath(__file__)
-    cur_path = os.path.split(cur_file)[0]
-    with open(os.path.join(cur_path, 'project.prop')) as prop_file:
+    src_path = os.path.dirname(__file__)
+    with open(os.path.join(src_path, 'project.prop')) as prop_file:
         props = prop_file.read()
     return ast.literal_eval(props)
 
 
-PROJECT = load_project_properties()
-PROJECT["VERSION"] = get_version_number(PROJECT["NAME"])
+def main():
+    """main entrypoint function"""
+    PROJECT["VERSION"] = get_version_number(PROJECT["NAME"])
+    _plugin_namespace = "{0}.plugins.v{1}".format(
+        PROJECT["NAME"],
+        PROJECT["PLUGIN_VER"]
+    )
+    # Execute packaging logic
+    setup(
+        name=PROJECT["NAME"],
+        version=PROJECT["VERSION"],
+        author='Kevin S. Phillips',
+        author_email='thefriendlycoder@gmail.com',
+        packages=find_packages('src'),
+        package_dir={'': 'src'},
+        description=PROJECT["DESCRIPTION"],
+        long_description=
+        generate_readme(PROJECT["NAME"], PROJECT["REPO"], PROJECT["VERSION"]),
+        url='https://github.com/TheFriendlyCoder/' + PROJECT["NAME"],
+        keywords=PROJECT["KEYWORDS"],
+        entry_points={
+            _plugin_namespace: load_plugins(PROJECT["NAME"]),
+            'console_scripts': load_console_scripts(PROJECT["NAME"]),
+        },
+        install_requires=PROJECT["DEPENDENCIES"],
+        python_requires=PROJECT["SUPPORTED_PYTHON_VERSION"],
+        extras_require={
+            'dev': PROJECT["DEV_DEPENDENCIES"],
+        },
+        license="Apache License 2.0",
+        # https://pypi.org/classifiers/
+        classifiers=[
+            "Development Status :: 3 - Alpha",
+            "Environment :: Console",
+            "License :: OSI Approved :: Apache Software License",
+            "Topic :: Software Development :: Libraries",
+            "Natural Language :: English",
+            "Operating System :: OS Independent",
+            "Programming Language :: Python :: 2",
+            "Programming Language :: Python :: 3",
+        ]
+    )
 
-# Execute packaging logic
-setup(
-    name=PROJECT["NAME"],
-    version=PROJECT["VERSION"],
-    author='Kevin S. Phillips',
-    author_email='thefriendlycoder@gmail.com',
-    packages=find_packages('src'),
-    package_dir={'': 'src'},
-    description=PROJECT["DESCRIPTION"],
-    long_description=
-    generate_readme(PROJECT["NAME"], PROJECT["REPO"], PROJECT["VERSION"]),
-    url='https://github.com/TheFriendlyCoder/' + PROJECT["NAME"],
-    keywords=PROJECT["KEYWORDS"],
-    entry_points={
-        'console_scripts': load_console_scripts(PROJECT["NAME"])
-    },
-    install_requires=PROJECT["DEPENDENCIES"],
-    python_requires=PROJECT["SUPPORTED_PYTHON_VERSION"],
-    extras_require={
-        'dev': PROJECT["DEV_DEPENDENCIES"]
-    },
-    package_data={
-        PROJECT["NAME"]: ["version.prop"]
-    },
-    license="GPL",
-    # https://pypi.org/classifiers/
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Environment :: Console",
-        "License :: OSI Approved :: "
-        "GNU General Public License v3 or later (GPLv3+)",
-        "Topic :: Software Development :: Libraries",
-        "Natural Language :: English",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 3",
-    ]
-)
+
+if __name__ == "__main__":
+    PROJECT = load_project_properties()
+    main()
