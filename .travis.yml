@@ -19,6 +19,7 @@ script:
   - python setup.py bdist_wheel
   - tox -e py$PYVER-lint --installpkg ./dist/*.whl
   - echo $TRAVIS_PYTHON_VERSION
+  - '[ "$TRAVIS_PYTHON_VERSION" == "2.7" ] && tox -e py$PYVER-test --installpkg ./dist/*.whl || :'
   - '[ "$TRAVIS_PYTHON_VERSION" == "3.6" ] && tox -e py$PYVER-test --installpkg ./dist/*.whl || :'
   - '[ "$TRAVIS_PYTHON_VERSION" == "pypy3.5" ] && tox -e py$PYVER-test --installpkg ./dist/*.whl || :'
 
