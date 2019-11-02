@@ -1,0 +1,35 @@
+version: 2.1
+# Needed for Windows builds
+orbs:
+  win: circleci/windows@1.0.0
+jobs:
+  build:
+#    docker:
+#      - image: circleci/python:2.7
+#   Need to request open source license to use this, or pay for premium
+#    macos:
+#      xcode: "9.0"
+    executor:
+      name: win/vs2019
+      #shell: cmd.exe
+      shell: powershell.exe
+    steps:
+      - checkout
+      #- run: Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.7.0/python-3.7.0.exe" -OutFile "c:/temp/python-3.7.0.exe"
+      - run: dir
+      - run: Get-ExecutionPolicy
+      - run: .\run.ps1
+      # Windows + powershell only:
+      #- run: Write-Host 'Hello, Windows'
+      # Windows + cmd.exe Only:
+      #- run: dir
+
+      # Mac only:
+      #- run: xcodebuild -version
+
+      # Mac and Linux and Windows (with Python installed manually):
+      - run: python --version
+      - run: python -c "import sys; print(sys.platform)"
+
+      # all:
+      #- run: echo "A first hello"
